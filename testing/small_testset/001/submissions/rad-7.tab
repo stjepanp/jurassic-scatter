@@ -1,0 +1,26 @@
+# $1 = time (seconds since 2000-01-01T00:00Z)
+# $2 = observer altitude [km]
+# $3 = observer longitude [deg]
+# $4 = observer latitude [deg]
+# $5 = view point altitude [km]
+# $6 = view point longitude [deg]
+# $7 = view point latitude [deg]
+# $8 = tangent point altitude [km]
+# $9 = tangent point longitude [deg]
+# $10 = tangent point latitude [deg]
+# $11 = channel 785: radiance [W/(m^2 sr cm^-1)]
+# $12 = channel 785.42: radiance [W/(m^2 sr cm^-1)]
+# $13 = channel 785.84: radiance [W/(m^2 sr cm^-1)]
+# $14 = channel 786.26: radiance [W/(m^2 sr cm^-1)]
+# $15 = channel 786.68: radiance [W/(m^2 sr cm^-1)]
+# $16 = channel 785: transmittance
+# $17 = channel 785.42: transmittance
+# $18 = channel 785.84: transmittance
+# $19 = channel 786.26: transmittance
+# $20 = channel 786.68: transmittance
+
+0.00 18.4 0 2.86137 10.4384 0 0 10.0007 -6.67794e-09 -0.190256 0.0140673 0.0139865 0.0138474 0.0137674 0.0137336 0.472976 0.485805 0.499025 0.505824 0.508292
+0.00 18.4 0 2.84483 10.5302 0 0 10.1006 -6.54753e-09 -0.187447 0.0140202 0.0139748 0.0138602 0.013788 0.0137537 0.474199 0.485911 0.498372 0.504941 0.507426
+0.00 18.4 0 2.82816 10.6221 0 0 10.2006 -6.41933e-09 -0.184725 0.0139798 0.0139683 0.0138769 0.0138118 0.0137769 0.475286 0.485894 0.497618 0.503971 0.506489
+0.00 18.4 0 2.81137 10.7142 0 0 10.3006 -6.29315e-09 -0.18206 0.0139474 0.013968 0.0138981 0.0138396 0.0138041 0.476173 0.485724 0.496764 0.502922 0.505466
+0.00 18.4 0 2.79447 10.8063 0 0 10.4006 -6.16926e-09 -0.179489 0.0139229 0.0139739 0.0139248 0.0138728 0.0138371 0.4769 0.485427 0.49578 0.501737 0.50429
