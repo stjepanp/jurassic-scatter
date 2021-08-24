@@ -6,3 +6,14 @@ docu/jurassic.blg
 docu/jurassic.log
 docu/jurassic.out
 docu/jurassic.toc
+src/brightness
+src/climatology
+src/formod
+src/interpolate
+src/kernel
+src/limb
+src/nadir
+src/planck
+src/raytrace
+src/retrieval
+src/tab2bin
