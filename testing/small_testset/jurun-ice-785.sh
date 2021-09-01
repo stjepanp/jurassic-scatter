@@ -34,4 +34,4 @@ w1=785
 w2=798
 
 ### run forward model
-srun $src/formod cloud-${w1}-${w2}.ctl obs33.tab atm.tab submissions/rad-${m}.tab AEROFILE aero.tab DIRLIST aux/first_003
+srun $src/formod cloud-${w1}-${w2}.ctl obs33.tab atm.tab submissions/rad-${m}.tab AEROFILE aero.tab DIRLIST aux/first_001

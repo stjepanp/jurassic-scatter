@@ -6,11 +6,17 @@
 EXC = brightness climatology formod interpolate kernel limb nadir planck raytrace retrieval tab2bin
 
 # Library directories...
-LIBDIR = -L /usr/lib64 
+#LIBDIR = -L /usr/lib64 
+LIBDIR = 
+LIBDIR += -L /p/software/jusuf/stages/2020/modules/all/Compiler/GCC/9.3.0
+LIBDIR += -L /p/software/jusuf/stages/2020/software/CUDA/11.0/lib64
+LIBDIR += -L ../../src
+
 
 # Include directories...
-INCDIR = -I /usr/local/include
+#INCDIR = -I /usr/local/include
 INCDIR += -I ../../lib/common_header
+INCDIR += -I ../../src/inter_folder
 
 # OpenMP...
 OMP = 1
@@ -59,7 +65,7 @@ CFLAGS += -O3
 endif
 
 # LDFLAGS...
-LDFLAGS = $(LIBDIR) -lgsl -lgslcblas -lm
+LDFLAGS = $(LIBDIR) -lgsl -lgslcblas -lm -lstdc++ -lcudart -lutil
 
 # -----------------------------------------------------------------------------
 # Targets...
@@ -68,8 +74,11 @@ LDFLAGS = $(LIBDIR) -lgsl -lgslcblas -lm
 all: $(EXC)
 	rm -f *~
 
-$(EXC): %: %.c  atmosphere.o continua.o control.o forwardmodel.o lineofsight.o misc.o retrievalmodel.o workqueue.o scatter.o Makefile
+$(EXC): %: %.c  atmosphere.o continua.o control.o forwardmodel.o lineofsight.o misc.o retrievalmodel.o workqueue.o scatter.o Makefile ../../src/libutil.a
 	$(CC) $(CFLAGS) -o $@ $< atmosphere.o continua.o control.o forwardmodel.o lineofsight.o misc.o retrievalmodel.o workqueue.o scatter.o  $(LDFLAGS)
+
+../../src/libutil.a:
+	make libutil.a -C ../../src
 
 atmosphere.o: atmosphere.c 
 	$(CC) $(CFLAGS) -c atmosphere.c

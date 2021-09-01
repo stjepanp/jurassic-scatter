@@ -2,6 +2,9 @@
 #include "workqueue.h" /* Queue_Inactive, Queue_Prepare, Queue_Execute, Queue_Execute */
 #include <assert.h> /* assert */
 
+#define __host__
+#include "interface.h"
+
 /*****************************************************************************/
 
 double brightness(double rad,
@@ -68,7 +71,8 @@ void formod(ctl_t *ctl,
   }
   
   if (Queue_Prepare == ctl->queue.state) {
-    
+      printf("Calling print_obs_size, function..\n");
+      print_obs_size(obs);
       if (1) { /* execute on CPU */
         ctl->queue.state = Queue_Execute;
         begin = ctl->queue.begin;
