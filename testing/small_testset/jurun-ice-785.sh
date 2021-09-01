@@ -29,7 +29,7 @@ echo $m > aux/submission_index
 
 ### set up
 #src=/p/home/jusers/pozgaj1/juwels/GSP-stjepanp/Project/Repos/jurassic-scatter/src
-src=/p/scratch/cslmet/pozgaj1/repos/jurassic-scatter/src
+src=../../src
 w1=785
 w2=798
 

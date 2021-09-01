@@ -1,7 +1,7 @@
 #ifndef WORKQUEUE_H
 #define WORKQUEUE_H
 
-#include <stdlib.h> /* malloc */
+#include "jurassic.h"
 
 /* Module containing all variables and functions related to a work-queue for scattering */
 
@@ -10,20 +10,6 @@
 #define Queue_Execute   8
 #define Queue_Collect  32
 
-typedef struct {
-    void* input;
-    void* result;
-    int ir;
-} queue_item_t;
-
-typedef struct {
-    queue_item_t* items;
-    int capacity;
-    int begin;
-    int end;
-    int state;
-} queue_t;
-          
 /* ------------------------------------------------------------
    Functions...
    ------------------------------------------------------------ */

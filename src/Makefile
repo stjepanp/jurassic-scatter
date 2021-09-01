@@ -10,6 +10,7 @@ LIBDIR = -L /usr/lib64
 
 # Include directories...
 INCDIR = -I /usr/local/include
+INCDIR += -I ../../lib/common_header
 
 # OpenMP...
 OMP = 1
