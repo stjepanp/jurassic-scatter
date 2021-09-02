@@ -81,6 +81,17 @@ def check(a, b):
     for row in mat:
       print(row) 
 
+def get_times():
+    a = "out" 
+    try:
+        with open(a) as f:
+            lines = f.readlines()
+    except IOError:
+        raise Exception("First file not accessible")
+    for l in lines:
+      if len(l) >= 6 and l[:6] == "TIMER ":
+        print(l[6:], end='')
+
 if __name__ == "__main__":
     with open('aux/submission_index') as f:
         lines = f.readlines()
@@ -95,3 +106,4 @@ if __name__ == "__main__":
         check("{}/rad-785-798.tab".format(num),
         "{}/submissions/rad-{}.tab".format(num, index)) 
         print("-------------------------------------\n")
+    get_times();

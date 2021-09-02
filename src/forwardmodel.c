@@ -44,6 +44,11 @@ void GPU_execute(ctl_t *ctl, atm_t *atm) {
   obs_t *obs_packages;
   ALLOC(obs_packages, obs_t, number_of_packages);
   
+
+  clock_t tic, toc;
+  
+  tic = clock();
+  
   //copy from ctl->queue to obs_packages 
   int package_id = 0, obs_row = 0;
   for(int i = ctl->queue.begin; i < ctl->queue.begin + q_size; i++) {
@@ -63,15 +68,22 @@ void GPU_execute(ctl_t *ctl, atm_t *atm) {
       }
     }
   }
+  toc = clock();
+  printf("TIMER Execute: copy from queue to packages time: %lf\n", (double) (toc - tic) / CLOCKS_PER_SEC);
+  
   printf("size of queue:%d\n", q_size);
   printf("num of packages: %d\ntheir sizes: ", number_of_packages);
   for(int i = 0; i < number_of_packages; i++)
     printf("%d ", obs_packages[i].nr);
   printf("\n");
-  
+
+  tic = clock();
   //calculate radiances for obs_packages
   formod_multiple_packages(ctl, atm, obs_packages, number_of_packages);    
+  toc = clock();
+  printf("TIMER Execute: formod_multiple_packages time: %lf\n", (double) (toc - tic) / CLOCKS_PER_SEC);
 
+  tic = clock();
   //copy from obs_packages to ctl->queue
   package_id = 0, obs_row = 0;
   for(int i = ctl->queue.begin; i < ctl->queue.begin + q_size; i++) {
@@ -89,8 +101,9 @@ void GPU_execute(ctl_t *ctl, atm_t *atm) {
         obs_row++;
       }
     }
-  }
-  
+  } 
+  toc = clock();
+  printf("TIMER Execute: copy from packages queue time: %lf\n", (double) (toc - tic) / CLOCKS_PER_SEC);
 }
 
 void formod(ctl_t *ctl,
@@ -134,6 +147,10 @@ void formod(ctl_t *ctl,
     ctl->queue.state = Queue_Inactive; /* deactivate the work queue */
     printf("# %s Queue_Inactive\n", __func__);
   }
+  
+  clock_t tic, toc;
+
+  tic = clock();
 
   /* Do first ray path sequential (to initialize model)... */
   formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, 0);
@@ -147,8 +164,14 @@ void formod(ctl_t *ctl,
   for(ir=1; ir<obs->nr; ir++){
     formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, ir);
   }
-  
+
+  if(Queue_Prepare == ctl->queue.state) {
+    toc = clock();
+    printf("TIMER Prepare time: %lf\n", (double) (toc - tic) / CLOCKS_PER_SEC);
+  }
+
   if (Queue_Prepare == ctl->queue.state) {
+      tic = clock();
       if (0) { /* execute on CPU */
         ctl->queue.state = Queue_Execute;
         begin = ctl->queue.begin;
@@ -170,13 +193,18 @@ void formod(ctl_t *ctl,
         GPU_execute(ctl, atm);
         //ERRMSG("No GPU version of formod_pencil implemented!");
       }
+      toc = clock();
+      printf("TIMER Execute time: %lf\n", (double) (toc - tic) / CLOCKS_PER_SEC);
       
+      tic = clock();
       ctl->queue.state = Queue_Collect;
       printf("# %s start Queue_Collect\n", __func__);
       for(ir=0; ir<obs->nr; ir++){
         formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, ir);
-      }
-
+      } 
+      toc = clock();
+      printf("TIMER Collect time: %lf\n", (double) (toc - tic) / CLOCKS_PER_SEC);
+      
       init_queue(&ctl->queue, -1); /* free queue resources */
       ctl->queue.state = Queue_Inactive; /* done */
   }
