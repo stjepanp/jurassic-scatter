@@ -74,11 +74,8 @@ LDFLAGS = $(LIBDIR) -lgsl -lgslcblas -lm -lstdc++ -lcudart -lutil
 all: $(EXC)
 	rm -f *~
 
-$(EXC): %: %.c  atmosphere.o continua.o control.o forwardmodel.o lineofsight.o misc.o retrievalmodel.o workqueue.o scatter.o Makefile ../../src/libutil.a
+$(EXC): %: %.c  atmosphere.o continua.o control.o forwardmodel.o lineofsight.o misc.o retrievalmodel.o workqueue.o scatter.o Makefile
 	$(CC) $(CFLAGS) -o $@ $< atmosphere.o continua.o control.o forwardmodel.o lineofsight.o misc.o retrievalmodel.o workqueue.o scatter.o  $(LDFLAGS)
-
-../../src/libutil.a:
-	make libutil.a -C ../../src
 
 atmosphere.o: atmosphere.c 
 	$(CC) $(CFLAGS) -c atmosphere.c

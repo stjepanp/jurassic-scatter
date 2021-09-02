@@ -15,6 +15,84 @@ double brightness(double rad,
 
 /*****************************************************************************/
 
+
+void copy_obs_row(obs_t *source, int rs, obs_t *dest, int rd);
+void copy_obs_row(obs_t *source, int rs, obs_t *dest, int rd) {
+  dest->time[rd] = source->time[rs];
+  dest->obsz[rd] = source->obsz[rs];
+  dest->obslon[rd] = source->obslon[rs];
+  dest->obslat[rd] = source->obslat[rs];
+  dest->vpz[rd] = source->vpz[rs];
+  dest->vplon[rd] = source->vplon[rs];
+  dest->vplat[rd] = source->vplat[rs];
+  dest->tpz[rd] = source->tpz[rs];
+  dest->tplon[rd] = source->tplon[rs];
+  dest->tplat[rd] = source->tplat[rs];
+  for(int i=0; i<ND; i++) {
+    dest->tau[rd][i] = source->tau[rs][i];
+    dest->rad[rd][i] = source->rad[rs][i];
+  }
+}
+
+void GPU_execute(ctl_t *ctl, atm_t *atm);
+void GPU_execute(ctl_t *ctl, atm_t *atm) {
+  printf("atm.. %d\n", atm->np);
+  int q_size = ctl->queue.end - ctl->queue.begin;
+  
+  int number_of_packages = (q_size + NR - 1) / NR;
+ 
+  obs_t *obs_packages;
+  ALLOC(obs_packages, obs_t, number_of_packages);
+  
+  //copy from ctl->queue to obs_packages 
+  int package_id = 0, obs_row = 0;
+  for(int i = ctl->queue.begin; i < ctl->queue.begin + q_size; i++) {
+    int ind;
+    los_t *los;
+    obs_t *obs;
+    get_queue_item(&ctl->queue, (void*)&los, (void*)&obs, &ind, i);
+    if(ind == 0) {
+      for(int j = 0; j < obs->nr; j++) {
+        if(obs_row == NR) {
+          package_id++;
+          obs_row = 0;
+        }
+        copy_obs_row(obs, j, &obs_packages[package_id], obs_row);
+        obs_packages[package_id].nr++;
+        obs_row++;
+      }
+    }
+  }
+  printf("size of queue:%d\n", q_size);
+  printf("num of packages: %d\ntheir sizes: ", number_of_packages);
+  for(int i = 0; i < number_of_packages; i++)
+    printf("%d ", obs_packages[i].nr);
+  printf("\n");
+  
+  //calculate radiances for obs_packages
+  formod_multiple_packages(ctl, atm, obs_packages, number_of_packages);    
+
+  //copy from obs_packages to ctl->queue
+  package_id = 0, obs_row = 0;
+  for(int i = ctl->queue.begin; i < ctl->queue.begin + q_size; i++) {
+    int ind;
+    los_t *los;
+    obs_t *obs;
+    get_queue_item(&ctl->queue, (void*)&los, (void*)&obs, &ind, i);
+    if(ind == 0) {
+      for(int j = 0; j < obs->nr; j++) {
+        if(obs_row == NR) {
+          package_id++;
+          obs_row = 0;
+        }
+        copy_obs_row(&obs_packages[package_id], obs_row, obs, j);
+        obs_row++;
+      }
+    }
+  }
+  
+}
+
 void formod(ctl_t *ctl,
 	    atm_t *atm,
 	    obs_t *obs,
@@ -71,9 +149,7 @@ void formod(ctl_t *ctl,
   }
   
   if (Queue_Prepare == ctl->queue.state) {
-      printf("Calling print_obs_size, function..\n");
-      print_obs_size(obs);
-      if (1) { /* execute on CPU */
+      if (0) { /* execute on CPU */
         ctl->queue.state = Queue_Execute;
         begin = ctl->queue.begin;
         end   = ctl->queue.end;
@@ -90,7 +166,9 @@ void formod(ctl_t *ctl,
           formod_pencil(ctl, atm, NULL, aero, 0, ir);
         } /* ir-loop */
       } else {
-          ERRMSG("No GPU version of formod_pencil implemented!");
+        printf("Execute on GPU!\n");
+        GPU_execute(ctl, atm);
+        //ERRMSG("No GPU version of formod_pencil implemented!");
       }
       
       ctl->queue.state = Queue_Collect;
