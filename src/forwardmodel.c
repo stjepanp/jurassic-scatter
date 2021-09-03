@@ -16,8 +16,8 @@ double brightness(double rad,
 /*****************************************************************************/
 
 
-void copy_obs_row(obs_t *source, int rs, obs_t *dest, int rd);
-void copy_obs_row(obs_t *source, int rs, obs_t *dest, int rd) {
+void copy_obs_row(obs_t const *source, int rs, obs_t *dest, int rd);
+void copy_obs_row(obs_t const *source, int rs, obs_t *dest, int rd) {
   dest->time[rd] = source->time[rs];
   dest->obsz[rd] = source->obsz[rs];
   dest->obslon[rd] = source->obslon[rs];

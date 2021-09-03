@@ -64,6 +64,8 @@ SCA_N = 1
 SCA_MULT = 1
 SCA_EXT = beta_e
 
+MAX_QUEUE = 1e5
+
 # Raytracing...
 RAYDS = 10.
 RAYDZ = 0.1
