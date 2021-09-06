@@ -389,9 +389,9 @@ size_t obs2y(ctl_t *ctl,
   /* Determine measurement vector... */
   for(ir=0; ir<obs->nr; ir++)
     for(id=0; id<ctl->nd; id++)
-      if(gsl_finite(obs->rad[id][ir])) {
+      if(gsl_finite(obs->rad[ir][id])) { //CHANGED
 	if(y!=NULL)
-	  gsl_vector_set(y, m, obs->rad[id][ir]);
+	  gsl_vector_set(y, m, obs->rad[ir][id]); //CHANGED
 	if(ida!=NULL)
 	  ida[m]=id;
 	if(ira!=NULL)
@@ -878,16 +878,16 @@ void set_cov_meas(ret_t *ret,
   copy_obs(ctl, &obs_err, obs, 1);
   for(ir=0; ir<obs_err.nr; ir++)
     for(id=0; id<ctl->nd; id++)
-      obs_err.rad[id][ir]
-	=(gsl_finite(obs->rad[id][ir]) ? ret->err_noise[id] : GSL_NAN);
+      obs_err.rad[ir][id] //CHANGED
+	=(gsl_finite(obs->rad[ir][id]) ? ret->err_noise[id] : GSL_NAN); //CHANGED
   obs2y(ctl, &obs_err, sig_noise, NULL, NULL);
   
   /* Forward model error (always considered in retrieval fit)... */
   copy_obs(ctl, &obs_err, obs, 1);
   for(ir=0; ir<obs_err.nr; ir++)
     for(id=0; id<ctl->nd; id++)
-      obs_err.rad[id][ir]
-	=fabs(ret->err_formod[id]/100*obs->rad[id][ir]);
+      obs_err.rad[ir][id] //CAHNGED
+	=fabs(ret->err_formod[id]/100*obs->rad[ir][id]); //CHANGED
   obs2y(ctl, &obs_err, sig_formod, NULL, NULL);
   
   /* Total error... */
@@ -1175,8 +1175,8 @@ void y2obs(ctl_t *ctl,
   /* Decompose measurement vector... */
   for(ir=0; ir<obs->nr; ir++)
     for(id=0; id<ctl->nd; id++)
-      if(gsl_finite(obs->rad[id][ir])) {
-	obs->rad[id][ir]=gsl_vector_get(y, m);
+      if(gsl_finite(obs->rad[ir][id])) { //CHANGED
+	obs->rad[ir][id]=gsl_vector_get(y, m); //CHANGED
 	m++;
       }
 }

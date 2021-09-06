@@ -15,6 +15,25 @@ double brightness(double rad,
 
 /*****************************************************************************/
 
+void debug_obs(ctl_t *ctl, obs_t *obs);
+void debug_obs(ctl_t *ctl, obs_t *obs) {
+  printf("DEBUG ");
+  printf("%lf ", obs->time[0]);
+  printf("%lf ", obs->obsz[0]);
+  printf("%lf ", obs->obslon[0]);
+  printf("%lf ", obs->obslat[0]);
+  printf("%lf ", obs->vpz[0]);
+  printf("%lf ", obs->vplon[0]);
+  printf("%lf ", obs->vplat[0]);
+  printf("%lf ", obs->tpz[0]);
+  printf("%lf ", obs->tplon[0]);
+  printf("%lf ", obs->tplat[0]);
+  for(int i = 0; i < ctl->nd; i++)
+    printf("%lf ", obs->rad[0][i]);
+  for(int i = 0; i < ctl->nd; i++)
+    printf("%lf ", obs->tau[0][i]);
+  printf("\n");
+}
 
 void copy_obs_row(obs_t const *source, int rs, obs_t *dest, int rd);
 void copy_obs_row(obs_t const *source, int rs, obs_t *dest, int rd) {
@@ -29,8 +48,8 @@ void copy_obs_row(obs_t const *source, int rs, obs_t *dest, int rd) {
   dest->tplon[rd] = source->tplon[rs];
   dest->tplat[rd] = source->tplat[rs];
   for(int i=0; i<ND; i++) {
-    dest->tau[rd][i] = source->tau[rs][i];
-    dest->rad[rd][i] = source->rad[rs][i];
+    dest->tau[rd][i] = source->tau[rs][i]; //CHANGED
+    dest->rad[rd][i] = source->rad[rs][i]; //CHANGED
   }
 }
 
@@ -64,6 +83,9 @@ void GPU_execute(ctl_t *ctl, atm_t *atm) {
         }
         copy_obs_row(obs, j, &obs_packages[package_id], obs_row);
         obs_packages[package_id].nr++;
+        if(package_id == 0 && obs_row == 0) {
+          debug_obs(ctl, obs);  
+        }
         obs_row++;
       }
     }
@@ -76,6 +98,7 @@ void GPU_execute(ctl_t *ctl, atm_t *atm) {
   for(int i = 0; i < number_of_packages; i++)
     printf("%d ", obs_packages[i].nr);
   printf("\n");
+
 
   tic = clock();
   //calculate radiances for obs_packages
@@ -119,7 +142,7 @@ void formod(ctl_t *ctl,
   /* Save observation mask... */
   for(id=0; id<ctl->nd; id++)
     for(ir=0; ir<obs->nr; ir++)
-      mask[id][ir]=!gsl_finite(obs->rad[id][ir]);
+      mask[id][ir]=!gsl_finite(obs->rad[ir][id]); //CHANGED
   
   /* Hydrostatic equilibrium... */
   hydrostatic(ctl, atm);
@@ -178,9 +201,17 @@ void formod(ctl_t *ctl,
         end   = ctl->queue.end;
         printf("# %s start Queue_Execute [%d, %d) on CPU\n", __func__, begin, end);
         /* Do first ray path sequential (to initialize model)... */
+
+        int ind;
+        los_t *los_deb;
+        obs_t *obs_deb;
+        get_queue_item(&ctl->queue, (void*)&los_deb, (void*)&obs_deb, &ind, begin);
+        debug_obs(ctl, obs_deb);
         for(ir = begin; ir < begin + 1; ++ir) {
           formod_pencil(ctl, atm, NULL, aero, 0, ir);
         } /* ir-loop */
+        get_queue_item(&ctl->queue, (void*)&los_deb, (void*)&obs_deb, &ind, begin);
+        debug_obs(ctl, obs_deb);
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic) private(ir)
 #endif
@@ -216,13 +247,13 @@ void formod(ctl_t *ctl,
   if(ctl->write_bbt)
     for(ir=0; ir<obs->nr; ir++)
       for(id=0; id<ctl->nd; id++)
-	obs->rad[id][ir]=brightness(obs->rad[id][ir], ctl->nu[id]);
+	obs->rad[ir][id]=brightness(obs->rad[ir][id], ctl->nu[id]); //CHANGED
   
   /* Apply observation mask... */
   for(id=0; id<ctl->nd; id++)
     for(ir=0; ir<obs->nr; ir++)
       if(mask[id][ir])
-	obs->rad[id][ir]=GSL_NAN;
+	obs->rad[ir][id]=GSL_NAN; //CHANGED
 }
 
 /*****************************************************************************/
@@ -295,8 +326,8 @@ void formod_fov(ctl_t *ctl,
       if(obs->time[ir2]==obs->time[ir]) {
 	z[nz]=obs2.tpz[ir2];
 	for(id=0; id<ctl->nd; id++) {
-	  rad[id][nz]=obs2.rad[id][ir2];
-	  tau[id][nz]=obs2.tau[id][ir2];
+	  rad[id][nz]=obs2.rad[ir2][id]; //CAHNGED
+	  tau[id][nz]=obs2.tau[ir2][id]; //CHANGED
 	}
 	nz++;
       }
@@ -306,25 +337,25 @@ void formod_fov(ctl_t *ctl,
     /* Convolute profiles with FOV... */
     wsum=0;
     for(id=0; id<ctl->nd; id++) {
-      obs->rad[id][ir]=0;
-      obs->tau[id][ir]=0;
+      obs->rad[ir][id]=0; //CHANGED
+      obs->tau[ir][id]=0; //CHANGED
     }
     for(i=0; i<n; i++) {
       zfov=obs->tpz[ir]+dz[i];
       idx=locate(z, nz, zfov);
       for(id=0; id<ctl->nd; id++) {
-        obs->rad[id][ir]+=w[i]
+        obs->rad[ir][id]+=w[i] //CHANGED
           *LIN(z[idx], rad[id][idx], 
 	       z[idx+1], rad[id][idx+1], zfov);
-        obs->tau[id][ir]+=w[i]
-          *LIN(z[idx], tau[id][idx], 
+        obs->tau[ir][id]+=w[i] //CHANGED
+          *LIN(z[idx], tau[id][idx],
 	       z[idx+1], tau[id][idx+1], zfov);
       }
       wsum+=w[i];
     }
     for(id=0; id<ctl->nd; id++) {
-      obs->rad[id][ir]/=wsum;
-      obs->tau[id][ir]/=wsum;
+      obs->rad[ir][id]/=wsum; //CHANGED
+      obs->tau[ir][id]/=wsum; //CHANGED
     }
   }
 }
@@ -381,8 +412,8 @@ if (Queue_Collect_Leaf == queue_mode) { /* ==c */
   pop_queue(&ctl->queue, (void*)&los, (void*)&obs2, &ir); /* pop result */
   /* Copy results... */
   for(id=0; id<ctl->nd; id++) {
-    obs->rad[id][ir] = obs2->rad[id][ir];
-    obs->tau[id][ir] = obs2->tau[id][ir];
+    obs->rad[ir][id] = obs2->rad[ir][id]; //CHANGED
+    obs->tau[ir][id] = obs2->tau[ir][id]; //CAHNGED
   } /* id */
   return;
 } /* ==c */
@@ -403,8 +434,8 @@ if ((Queue_Collect|Queue_Execute_Leaf) & queue_mode) { /* Cx */
 
   /* Initialize... */
   for(id=0; id<ctl->nd; id++) {
-    obs->rad[id][ir]=0;
-    obs->tau[id][ir]=1;
+    obs->rad[ir][id]=0; //CHANGED
+    obs->tau[ir][id]=1; //CHANGED
   }
 } /* Cx */
 
@@ -461,10 +492,10 @@ if ((Queue_Collect) & queue_mode) { /* C */
                   beta_ext_tot;
 
           /* Compute radiance: path extinction * segment emissivity * segment source */
-          obs->rad[id][ir] += obs->tau[id][ir]*eps*src_all;
+          obs->rad[ir][id] += obs->tau[ir][id]*eps*src_all; //CHANGED
 
           /* Compute path transmittance... */
-          obs->tau[id][ir] *= exp(-1.*beta_ext_tot*los->ds[ip]);
+          obs->tau[ir][id] *= exp(-1.*beta_ext_tot*los->ds[ip]); //CAHNGED
         }
 } /* C */
     }
@@ -491,10 +522,10 @@ if ((Queue_Collect|Queue_Execute_Leaf) & queue_mode) { /* Cx */
           }
 
           /* Compute radiance... */
-          obs->rad[id][ir]+=src_planck[id]*eps*obs->tau[id][ir];
+          obs->rad[ir][id]+=src_planck[id]*eps*obs->tau[ir][id]; //CHANGED
 
           /* Compute path transmittance... */
-          obs->tau[id][ir]*=(1-eps);
+          obs->tau[ir][id]*=(1-eps); //CAHNGED
         }
     }
 } /* Cx */
@@ -505,7 +536,7 @@ if ((Queue_Collect|Queue_Execute_Leaf) & queue_mode) { /* Cx */
   if(los->tsurf>0) {
     srcfunc_planck(ctl, los->tsurf, src_planck);
     for(id=0; id<ctl->nd; id++)
-      obs->rad[id][ir]+=src_planck[id]*obs->tau[id][ir];
+      obs->rad[ir][id]+=src_planck[id]*obs->tau[ir][id]; //CHANGED
   }
 
   /* Free... */

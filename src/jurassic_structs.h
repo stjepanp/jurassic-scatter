@@ -430,10 +430,10 @@ typedef struct {
   double tplat[NRMAX];
   
   /* Transmittance of ray path. */
-  double tau[NDMAX][NRMAX];
+  double tau[NRMAX][NDMAX]; //CHANGED
   
   /* Radiance [W/(m^2 sr cm^-1)]. */
-  double rad[NDMAX][NRMAX];
+  double rad[NRMAX][NDMAX]; //CHANGED
   
 } obs_t;
 /* ------------------------------------------------------------*/

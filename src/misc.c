@@ -41,19 +41,21 @@ void copy_obs(ctl_t *ctl,
   memcpy(obs_dest->tpz, obs_src->tpz, s);
   memcpy(obs_dest->tplon, obs_src->tplon, s);
   memcpy(obs_dest->tplat, obs_src->tplat, s);
-  for(id=0; id<ctl->nd; id++) {
-    memcpy(obs_dest->rad[id], obs_src->rad[id], s);
-    memcpy(obs_dest->tau[id], obs_src->tau[id], s);
+  size_t t;                                         //CHANGED
+  t=(size_t)ctl->nd*sizeof(double);                 //CHANGED
+  for(ir=0; ir<obs_src->nr; ir++) {                 //CHANGED
+    memcpy(obs_dest->rad[ir], obs_src->rad[ir], t); //CHANGED
+    memcpy(obs_dest->tau[ir], obs_src->tau[ir], t); //CHANGED
   }
   
   /* Initialize... */
   if(init)
     for(ir=0; ir<obs_dest->nr; ir++)
       for(id=0; id<ctl->nd; id++)
-	if(gsl_finite(obs_dest->rad[id][ir])) {
-	  obs_dest->rad[id][ir]=0;
-	  obs_dest->tau[id][ir]=0;
-	}
+        if(gsl_finite(obs_dest->rad[ir][id])) { //CHANGED
+          obs_dest->rad[ir][id]=0;              //CHANGED
+          obs_dest->tau[ir][id]=0;              //CHANGED
+        }
 }
 
 /*****************************************************************************/
@@ -308,9 +310,9 @@ void read_obs(const char *dirname,
     TOK(NULL, tok, "%lg", obs->tplon[obs->nr]);
     TOK(NULL, tok, "%lg", obs->tplat[obs->nr]);
     for(id=0; id<ctl->nd; id++)
-      TOK(NULL, tok, "%lg", obs->rad[id][obs->nr]);
+      TOK(NULL, tok, "%lg", obs->rad[obs->nr][id]); //CHANGED
     for(id=0; id<ctl->nd; id++)
-      TOK(NULL, tok, "%lg", obs->tau[id][obs->nr]);
+      TOK(NULL, tok, "%lg", obs->tau[obs->nr][id]); //CHANGED
     
     /* Increment counter... */
     if((++obs->nr)>NRMAX)
@@ -379,9 +381,9 @@ void write_obs(const char *dirname,
 	    obs->vpz[ir], obs->vplon[ir], obs->vplat[ir],
 	    obs->tpz[ir], obs->tplon[ir], obs->tplat[ir]);
     for(id=0; id<ctl->nd; id++)
-      fprintf(out, " %g", obs->rad[id][ir]);
+      fprintf(out, " %g", obs->rad[ir][id]); //CHANGED
     for(id=0; id<ctl->nd; id++)
-      fprintf(out, " %g", obs->tau[id][ir]);
+      fprintf(out, " %g", obs->tau[ir][id]); //CHANGED
     fprintf(out, "\n");
   }
   

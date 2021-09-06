@@ -60,11 +60,11 @@ int main(int argc, char *argv[]) {
       for(id=0; id<ctl.nd; id++)
 	for(ir=0; ir<obs_meas.nr; ir++)
 	  if(ret.resmax>0
-	     && gsl_finite(obs_i.rad[id][ir])
-	     && gsl_finite(obs_meas.rad[id][ir])
-	     && fabs(1-obs_i.rad[id][ir]/obs_meas.rad[id][ir])
+	     && gsl_finite(obs_i.rad[ir][id]) //CAHNGED
+	     && gsl_finite(obs_meas.rad[ir][id]) //CHANGED
+	     && fabs(1-obs_i.rad[ir][id]/obs_meas.rad[ir][id]) //CHANGED
 	     >=ret.resmax/100) {
-	    obs_meas.rad[id][ir]=obs_i.rad[id][ir]=GSL_NAN;
+	    obs_meas.rad[ir][id]=obs_i.rad[ir][id]=GSL_NAN; //CHANGED
 	    nbad++;
 	  }
       

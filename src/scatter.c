@@ -788,8 +788,8 @@ void srcfunc_sca_1d(ctl_t *ctl,
 	w=sin(theta2)*phase2;
 	
 	/* Interpolate radiance to particular angle... */
-	rad=LIN(alpha[idx], obs2->rad[id][idx],
-	 	alpha[idx+1], obs2->rad[id][idx+1], alpha2);
+	rad=LIN(alpha[idx], obs2->rad[idx][id], //CHANGED
+	 	alpha[idx+1], obs2->rad[idx+1][id], alpha2); //CHANGED
 	
 	/* Integrate... */
 	src_sca[id]+=w*rad;
@@ -879,7 +879,7 @@ void srcfunc_sca_3d(ctl_t *ctl,
 	w=M_PI/ntheta2*2*M_PI*sin(theta2)/nphi*phase2;
 	
 	/* Integrate... */
-	src_sca[id]+=w*obs2->rad[id][0];
+	src_sca[id]+=w*obs2->rad[0][id]; //CHANGED
 	wsum+=w;
       }
     }
@@ -985,7 +985,7 @@ void srcfunc_sca_sun(ctl_t *ctl,
       
       /* Add solar radiance (6.764e-5 solid angle of the sun)... */
       src_sca[id]+=6.764e-5*phase2
-	*planck(TSUN, ctl->nu[id])*obs->tau[id][0];
+	*planck(TSUN, ctl->nu[id])*obs->tau[0][id]; //CHANGED
     }
   }
 
