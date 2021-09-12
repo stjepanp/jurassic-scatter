@@ -53,8 +53,9 @@ void copy_obs_row(obs_t const *source, int rs, obs_t *dest, int rd) {
   }
 }
 
-void GPU_execute(ctl_t *ctl, atm_t *atm);
-void GPU_execute(ctl_t *ctl, atm_t *atm) {
+//added aero
+void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero);
+void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero) {
   printf("atm.. %d\n", atm->np);
   int q_size = ctl->queue.end - ctl->queue.begin;
   
@@ -62,7 +63,11 @@ void GPU_execute(ctl_t *ctl, atm_t *atm) {
  
   obs_t *obs_packages;
   ALLOC(obs_packages, obs_t, number_of_packages);
-  
+ 
+  los_t **los_packages = (los_t**) malloc((long unsigned int)number_of_packages * sizeof(los_t*));
+  los_packages[0] = (los_t*) malloc((long unsigned int)number_of_packages * (long unsigned int)NR * sizeof(los_t));
+  for (int i = 1; i < number_of_packages; i++)
+    los_packages[i] = los_packages[0] + i * NR;
 
   clock_t tic, toc;
   
@@ -75,20 +80,17 @@ void GPU_execute(ctl_t *ctl, atm_t *atm) {
     los_t *los;
     obs_t *obs;
     get_queue_item(&ctl->queue, (void*)&los, (void*)&obs, &ind, i);
-    if(ind == 0) {
-      for(int j = 0; j < obs->nr; j++) {
-        if(obs_row == NR) {
-          package_id++;
-          obs_row = 0;
-        }
-        copy_obs_row(obs, j, &obs_packages[package_id], obs_row);
-        obs_packages[package_id].nr++;
-        if(package_id == 0 && obs_row == 0) {
-          debug_obs(ctl, obs);  
-        }
-        obs_row++;
-      }
+    if(obs_row == NR) {
+      package_id++;
+      obs_row = 0;
     }
+    copy_obs_row(obs, ind, &obs_packages[package_id], obs_row);
+    memcpy(&los_packages[package_id][obs_row], los, sizeof(los_t));
+    obs_packages[package_id].nr++;
+    if(package_id == 0 && obs_row == 0) {
+      debug_obs(ctl, obs);  
+    }
+    obs_row++;
   }
   toc = clock();
   printf("TIMER Execute: copy from queue to packages time: %lf\n", (double) (toc - tic) / CLOCKS_PER_SEC);
@@ -102,7 +104,7 @@ void GPU_execute(ctl_t *ctl, atm_t *atm) {
 
   tic = clock();
   //calculate radiances for obs_packages
-  formod_multiple_packages(ctl, atm, obs_packages, number_of_packages);    
+  formod_multiple_packages(ctl, atm, aero, number_of_packages, obs_packages, los_packages);    
   toc = clock();
   printf("TIMER Execute: formod_multiple_packages time: %lf\n", (double) (toc - tic) / CLOCKS_PER_SEC);
 
@@ -114,16 +116,12 @@ void GPU_execute(ctl_t *ctl, atm_t *atm) {
     los_t *los;
     obs_t *obs;
     get_queue_item(&ctl->queue, (void*)&los, (void*)&obs, &ind, i);
-    if(ind == 0) {
-      for(int j = 0; j < obs->nr; j++) {
-        if(obs_row == NR) {
-          package_id++;
-          obs_row = 0;
-        }
-        copy_obs_row(&obs_packages[package_id], obs_row, obs, j);
-        obs_row++;
-      }
+    if(obs_row == NR) {
+      package_id++;
+      obs_row = 0;
     }
+    copy_obs_row(&obs_packages[package_id], obs_row, obs, ind);
+    obs_row++;
   } 
   toc = clock();
   printf("TIMER Execute: copy from packages queue time: %lf\n", (double) (toc - tic) / CLOCKS_PER_SEC);
@@ -221,7 +219,7 @@ void formod(ctl_t *ctl,
         } /* ir-loop */
       } else {
         printf("Execute on GPU!\n");
-        GPU_execute(ctl, atm);
+        advanced_execute(ctl, atm, aero);
         //ERRMSG("No GPU version of formod_pencil implemented!");
       }
       toc = clock();

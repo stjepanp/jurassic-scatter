@@ -51,7 +51,7 @@ NU[4] = 786.68
 # NU[31] = 798.02
 # NU[32] = 798.44
 
-TBLBASE = /p/fastdata/slmet/slmet111/model_data/jurassic/tab/crista-nf/binary_785_984/crista_nf 
+TBLBASE = /p/fastdata/slmet/slmet111/model_data/jurassic/tab/crista-nf/ascii_785_964/crista_nf 
 
 # Continua...
 CTM_CO2 = 1
