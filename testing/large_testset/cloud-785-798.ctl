@@ -51,7 +51,7 @@ NU[30] = 797.60
 NU[31] = 798.02
 NU[32] = 798.44
 
-TBLBASE = /p/fastdata/slmet/slmet111/model_data/jurassic/tab/crista-nf/binary_785_984/crista_nf 
+TBLBASE = /p/fastdata/slmet/slmet111/model_data/jurassic/tab/crista-nf/ascii_785_964/crista_nf 
 
 # Continua...
 CTM_CO2 = 1
@@ -75,3 +75,6 @@ ZMIN = 0
 ZMAX = 80
 DZ = 1
 CLIMPATH = /p/project/chwu36/hwu361/crista-nf/setup/atmo/clim_pscs.tab
+
+# use the GPU: 0:never, 1:always, -1:if possible
+USEGPU = 1 

@@ -98,6 +98,9 @@ void read_ctl(int argc,
   
   /* Work queue... */
   ctl->queue.capacity=(int)scan_ctl(argc, argv, "MAX_QUEUE", -1, "-1", NULL);
+  
+  //Added: useGPU
+  ctl->useGPU=(int)scan_ctl(argc, argv, "USEGPU", -1, "0", NULL);
 }
 
 /*****************************************************************************/

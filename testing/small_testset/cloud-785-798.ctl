@@ -75,3 +75,6 @@ ZMIN = 0
 ZMAX = 80
 DZ = 1
 CLIMPATH = /p/project/chwu36/hwu361/crista-nf/setup/atmo/clim_pscs.tab
+
+# use the GPU: 0:never, 1:always, -1:if possible
+USEGPU = -1 

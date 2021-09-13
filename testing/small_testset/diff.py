@@ -78,8 +78,12 @@ def check(a, b):
     print("number of channels:", int(len(d_b[0][1]) / 2))
     print("max abs diff: {}, max rel dif: {}".format(max_abs_diff,
     max_rel_diff))
-    for row in mat:
-      print(row) 
+    if len(mat) > 0:
+      print("mat size: {} x {}".format(len(mat), len(mat[0])));
+      for i in range(min(len(mat), 5)):
+        for j in range(min(len(mat[0]), 5)):
+          print(mat[i][j], end=" ")
+        print()
 
 def get_times():
     a = "out" 

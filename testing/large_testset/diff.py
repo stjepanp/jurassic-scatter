@@ -27,7 +27,7 @@ def calc_diff(mat, a, b):
     max_abs_diff = 0
     max_rel_diff = 0
     pairs = []
-    for i in range(half_b, len(b)):
+    for i in range(0, len(b)): #check both tau and rad
         id_a = i
         if i >= half_b:
             id_a = half_a + i - half_b
@@ -78,8 +78,12 @@ def check(a, b):
     print("number of channels:", int(len(d_b[0][1]) / 2))
     print("max abs diff: {}, max rel dif: {}".format(max_abs_diff,
     max_rel_diff))
-    #for row in mat:
-    #  print(row) 
+    if len(mat) > 0:
+      print("mat size: {} x {}".format(len(mat), len(mat[0])));
+      for i in range(min(len(mat), 5)):
+        for j in range(min(len(mat[0]), 5)):
+          print(mat[i][j], end=" ")
+        print()
 
 def get_times():
     a = "out" 
@@ -90,6 +94,17 @@ def get_times():
         raise Exception("First file not accessible")
     for l in lines:
       if len(l) >= 6 and l[:6] == "TIMER ":
+        print(l[6:], end='')
+
+def get_debug():
+    a = "out" 
+    try:
+        with open(a) as f:
+            lines = f.readlines()
+    except IOError:
+        raise Exception("First file not accessible")
+    for l in lines:
+      if len(l) >= 6 and l[:6] == "DEBUG ":
         print(l[6:], end='')
 
 if __name__ == "__main__":
@@ -107,3 +122,5 @@ if __name__ == "__main__":
         "{}/submissions/rad-{}.tab".format(num, index)) 
         print("-------------------------------------\n")
     get_times();
+    print("-------------------------------------\n")
+    get_debug();
