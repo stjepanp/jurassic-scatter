@@ -3,7 +3,8 @@
 # -----------------------------------------------------------------------------
 
 # Executables...
-EXC = brightness climatology formod interpolate kernel limb nadir planck raytrace retrieval tab2bin
+#EXC = brightness climatology formod interpolate kernel limb nadir planck raytrace retrieval tab2bin
+EXC = formod
 
 # Library directories...
 #LIBDIR = -L /usr/lib64 
