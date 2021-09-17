@@ -648,17 +648,18 @@ void srcfunc_sca(ctl_t *ctl,
 		 double *dx,
 		 int il,
 		 double *src_sca,
-		 int scattering) {
+		 int scattering,
+     queue_t *q) {
   
   /* Compute scattering of thermal radiation... */
   if(ctl->ip==1)
-    srcfunc_sca_1d(ctl, atm, aero, x, dx, il, src_sca, scattering);
+    srcfunc_sca_1d(ctl, atm, aero, x, dx, il, src_sca, scattering, q);
   else
-    srcfunc_sca_3d(ctl, atm, aero, x, dx, il, src_sca, scattering);
+    srcfunc_sca_3d(ctl, atm, aero, x, dx, il, src_sca, scattering, q);
   
   /* Compute scattering of solar radiation... */
   if(TSUN>0)
-    srcfunc_sca_sun(ctl, atm, aero, sec, x, dx, il, src_sca);
+    srcfunc_sca_sun(ctl, atm, aero, sec, x, dx, il, src_sca, q);
 }
 
 /*****************************************************************************/
@@ -670,7 +671,8 @@ void srcfunc_sca_1d(ctl_t *ctl,
 		    double *dx,
 		    int il,
 		    double *src_sca,
-		    int scattering) {
+		    int scattering,
+        queue_t *q) {
   
   obs_t *obs2;
   
@@ -736,9 +738,9 @@ void srcfunc_sca_1d(ctl_t *ctl,
     cart2geo(xv, &obs2->vpz[ir], &obs2->vplon[ir], &obs2->vplat[ir]);
     
     /* Get pencil beam radiance... */
-    formod_pencil(ctl, atm, obs2, aero, scattering-1, ir);
+    formod_pencil(ctl, atm, obs2, aero, scattering-1, ir, q);
   }
-  if (Queue_Prepare == ctl->queue.state) return; /* prepare work queue items only */
+  if (Queue_Prepare == ctl->queue_state) return; /* prepare work queue items only */
   
   /* Get orthonormal basis (with respect to LOS)... */
   bascoord(dx, x, sx, sy, sz);  
@@ -815,7 +817,8 @@ void srcfunc_sca_3d(ctl_t *ctl,
 		    double *dx,
 		    int il,
 		    double *src_sca,
-		    int scattering) {
+		    int scattering,
+        queue_t *q) {
   
   obs_t *obs2;
   
@@ -863,7 +866,7 @@ void srcfunc_sca_3d(ctl_t *ctl,
       cart2geo(xv, &obs2->vpz[0], &obs2->vplon[0], &obs2->vplat[0]);
       
       /* Get incident radiation... */
-      formod_pencil(ctl, atm, obs2, aero, scattering-1, 0);
+      formod_pencil(ctl, atm, obs2, aero, scattering-1, 0, q);
       
       /* Get phase function index */
       idx=locate(theta, NTHETA, theta2);
@@ -884,7 +887,7 @@ void srcfunc_sca_3d(ctl_t *ctl,
       }
     }
   }
-  if (Queue_Prepare == ctl->queue.state) return; /* prepare work queue items only */
+  if (Queue_Prepare == ctl->queue_state) return; /* prepare work queue items only */
   
   /* Normalize... */
   for(id=0; id<ctl->nd; id++)
@@ -903,7 +906,8 @@ void srcfunc_sca_sun(ctl_t *ctl,
 		     double *x,
 		     double *dx,
 		     int il,
-		     double *src_sca) {
+		     double *src_sca,
+         queue_t *q) {
 
   los_t *los;
   
@@ -970,7 +974,7 @@ void srcfunc_sca_sun(ctl_t *ctl,
   if(los->tsurf<0) {
     
     /* Compute path transmittance... */
-    formod_pencil(ctl, atm, obs, aero, 0, 0);
+    formod_pencil(ctl, atm, obs, aero, 0, 0, q);
     
     /* Get phase function position... */
     theta2=ANGLE(ek, dx);

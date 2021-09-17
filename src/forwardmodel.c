@@ -16,23 +16,23 @@ double brightness(double rad,
 
 /*****************************************************************************/
 
-void debug_obs(ctl_t *ctl, obs_t *obs);
-void debug_obs(ctl_t *ctl, obs_t *obs) {
+void debug_obs(ctl_t *ctl, obs_t *obs, int id);
+void debug_obs(ctl_t *ctl, obs_t *obs, int id) {
   printf("DEBUG ");
-  printf("%lf ", obs->time[0]);
-  printf("%lf ", obs->obsz[0]);
-  printf("%lf ", obs->obslon[0]);
-  printf("%lf ", obs->obslat[0]);
-  printf("%lf ", obs->vpz[0]);
-  printf("%lf ", obs->vplon[0]);
-  printf("%lf ", obs->vplat[0]);
-  printf("%lf ", obs->tpz[0]);
-  printf("%lf ", obs->tplon[0]);
-  printf("%lf ", obs->tplat[0]);
+  printf("%lf ", obs->time[id]);
+  printf("%lf ", obs->obsz[id]);
+  printf("%lf ", obs->obslon[id]);
+  printf("%lf ", obs->obslat[id]);
+  printf("%lf ", obs->vpz[id]);
+  printf("%lf ", obs->vplon[id]);
+  printf("%lf ", obs->vplat[id]);
+  printf("%lf ", obs->tpz[id]);
+  printf("%lf ", obs->tplon[id]);
+  printf("%lf ", obs->tplat[id]);
   for(int i = 0; i < ctl->nd; i++)
-    printf("%lf ", obs->rad[0][i]);
+    printf("%lf ", obs->rad[id][i]);
   for(int i = 0; i < ctl->nd; i++)
-    printf("%lf ", obs->tau[0][i]);
+    printf("%lf ", obs->tau[id][i]);
   printf("\n");
 }
 
@@ -54,13 +54,17 @@ void copy_obs_row(obs_t const *source, int rs, obs_t *dest, int rd) {
   }
 }
 
-//added aero
-void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero);
-void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero) {
-  printf("atm.. %d\n", atm->np);
-  int q_size = ctl->queue.end - ctl->queue.begin;
+void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero, queue_t *qs, int nr);
+void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero, queue_t *qs, int nr) {
+
+  int *pref_sizes = (int*) malloc((long unsigned int) nr * sizeof(int));
+  pref_sizes[0] = 0;
+  for(int i = 1; i < nr; i++)
+    pref_sizes[i] = pref_sizes[i - 1] + qs[i - 1].end - qs[i - 1].begin;
+
+  int sum_sizes = pref_sizes[nr - 1] + qs[nr - 1].end - qs[nr - 1].begin;
   
-  int number_of_packages = (q_size + NR - 1) / NR;
+  int number_of_packages = (sum_sizes + NR - 1) / NR;
  
   double tic, toc;
   tic = omp_get_wtime();
@@ -73,7 +77,7 @@ void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero) {
   for (int i = 1; i < number_of_packages; i++)
     los_packages[i] = los_packages[0] + i * NR;
 
-  int last_package_size = q_size % NR;
+  int last_package_size = sum_sizes % NR;
   for(int i = 0; i < number_of_packages; i++)
     if(i == number_of_packages - 1 && last_package_size > 0)
       obs_packages[i].nr = last_package_size;
@@ -83,51 +87,50 @@ void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero) {
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic)
 #endif
-  for(int i = ctl->queue.begin; i < ctl->queue.begin + q_size; i++) {
-    int ind;
-    los_t *los;
-    obs_t *obs; 
-    int package_id = (i - ctl->queue.begin) / NR;
-    int obs_row = (i - ctl->queue.begin) % NR;
-    get_queue_item(&ctl->queue, (void*)&los, (void*)&obs, &ind, i);
-    copy_obs_row(obs, ind, &obs_packages[package_id], obs_row);
-    memcpy(&los_packages[package_id][obs_row], los, sizeof(los_t));
+  for(int i = 0; i < nr; i++) {
+    for(int j = 0; j < qs[i].end - qs[i].begin; j++) {
+      int ind;
+      los_t *los;
+      obs_t *obs; 
+      int package_id = (pref_sizes[i] + j) / NR;
+      int obs_row = (pref_sizes[i] + j) % NR;
+      get_queue_item(&qs[i], (void*)&los, (void*)&obs, &ind, qs[i].begin + j);
+      copy_obs_row(obs, ind, &obs_packages[package_id], obs_row);
+      memcpy(&los_packages[package_id][obs_row], los, sizeof(los_t));
+    }
   }
 
   toc = omp_get_wtime();
   printf("TIMER Execute: copy from queue to packages time: %lf\n", toc - tic);
   
-  printf("size of queue:%d\n", q_size);
-  printf("num of packages: %d\ntheir sizes: ", number_of_packages);
   for(int i = 0; i < number_of_packages; i++)
     printf("%d ", obs_packages[i].nr);
   printf("\n");
-
-
   tic = omp_get_wtime();
-  //calculate radiances for obs_packages
   formod_multiple_packages(ctl, atm, aero, number_of_packages, obs_packages, los_packages);    
   toc = omp_get_wtime();
   printf("TIMER Execute: formod_multiple_packages time: %lf\n", toc - tic);
 
   tic = omp_get_wtime();
-  
-  
+ 
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic)
 #endif
-  for(int i = ctl->queue.begin; i < ctl->queue.begin + q_size; i++) {
-    int ind;
-    los_t *los;
-    obs_t *obs;
-    int package_id = (i - ctl->queue.begin) / NR;
-    int obs_row = (i - ctl->queue.begin) % NR;
-    get_queue_item(&ctl->queue, (void*)&los, (void*)&obs, &ind, i);
-    copy_obs_row(&obs_packages[package_id], obs_row, obs, ind);
-  } 
+  for(int i = 0; i < nr; i++)
+    for(int j = 0; j < qs[i].end - qs[i].begin; j++) {
+      int ind;
+      los_t *los;
+      obs_t *obs; 
+      int package_id = (pref_sizes[i] + j) / NR;
+      int obs_row = (pref_sizes[i] + j) % NR;
+      get_queue_item(&qs[i], (void*)&los, (void*)&obs, &ind, qs[i].begin + j);
+      copy_obs_row(&obs_packages[package_id], obs_row, obs, ind);
+    }
+
   toc = omp_get_wtime();
   printf("TIMER Execute: copy from packages queue time: %lf\n", toc - tic);
 }
+
 
 void formod(ctl_t *ctl,
 	    atm_t *atm,
@@ -137,8 +140,10 @@ void formod(ctl_t *ctl,
   static int mask[NDMAX][NRMAX];
   
   int id, ir;
-  int begin, end;
+  double tic, toc;
   
+  queue_t *qs;
+
   /* Save observation mask... */
   for(id=0; id<ctl->nd; id++)
     for(ir=0; ir<obs->nr; ir++)
@@ -152,9 +157,14 @@ void formod(ctl_t *ctl,
     get_opt_prop(ctl, aero);
   }
 
-  if (ctl->queue.capacity > 0) { /* switch usage of queue on by setting MAX_QUEUE > 0 */
-    init_queue(&ctl->queue, ctl->queue.capacity);
-    printf("DEBUG # %s init queue with %d elements\n", __func__, ctl->queue.capacity);
+  if (ctl->leaf_nr > 0) { /* switch usage of queue on by setting MAX_QUEUE > 0 */
+    
+    int leaf_rays_per_ray = ctl->leaf_nr / obs->nr + 1;
+    qs = (queue_t*) malloc((long unsigned int)obs->nr * sizeof(queue_t));
+    for(int i = 0; i < obs->nr; i++)
+      init_queue(&qs[i], leaf_rays_per_ray);
+    
+    printf("DEBUG # %s init %d queues with %d elements\n", __func__, obs->nr, leaf_rays_per_ray);
     /*
      *  Work Queue Architecture with three stages:
      *    Pp Prepare constructs the multiple scattering tree 
@@ -164,81 +174,112 @@ void formod(ctl_t *ctl,
      *    Cc Collect traverses the tree again and collects
      *               the results
      */
-    ctl->queue.state = Queue_Prepare; /* activate the work queue */ 
+    ctl->queue_state = Queue_Prepare; /* activate the work queue */ 
     printf("DEBUG # %s start Queue_Prepare\n", __func__);
-  } else {
-    ctl->queue.state = Queue_Inactive; /* deactivate the work queue */
-    printf("DEBUG # %s Queue_Inactive\n", __func__);
-  }
-  
-  double tic, toc;
 
-  tic = omp_get_wtime();
 
-  /* Do first ray path sequential (to initialize model)... */
-  formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, 0);
-  
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic) private(ir,id) \
-            if(Queue_Inactive == ctl->queue.state)
-#endif
+    tic = omp_get_wtime();
 
-  /* Do remaining ray paths in parallel... */
-  for(ir=1; ir<obs->nr; ir++){
-    formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, ir);
-  }
-
-  if(Queue_Prepare == ctl->queue.state) {
+    /* Do first ray path sequential (to initialize model)... */
+    formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, 0, &qs[0]);
+    
     toc = omp_get_wtime();
-    printf("TIMER Prepare time: %lf\n", toc - tic);
-  }
+    printf("TIMER Prepare 1st part time: %lf\n", toc - tic);
 
-  if (Queue_Prepare == ctl->queue.state) {
+    tic = omp_get_wtime();
+    //TODO: add this parallel part..
+    /* Do remaining ray paths in parallel... */
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic)
+#endif
+    for(int i=1; i<obs->nr; i++){
+      formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, i, &qs[i]);
+    }
+    printf("\n");
+
+    toc = omp_get_wtime();
+    printf("TIMER Prepare 2nd part time: %lf\n", toc - tic);
+
+
+  } else {
+    // I had to add this line to avoid warnings
+    qs = (queue_t*) malloc((long unsigned int)1 * sizeof(queue_t));
+
+    ctl->queue_state = Queue_Inactive; /* deactivate the work queue */
+    printf("DEBUG # %s Queue_Inactive\n", __func__);
+
+    tic = omp_get_wtime();
+    /* Do first ray path sequential (to initialize model)... */
+    formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, 0, NULL);
+    
+    /* Do remaining ray paths in parallel... */
+    for(ir=1; ir<obs->nr; ir++){
+      formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, ir, NULL);
+    }
+
+    toc = omp_get_wtime();
+    printf("TIMER Queue inactive execution time: %lf\n", toc - tic);
+  }
+  
+  if (Queue_Prepare == ctl->queue_state) {
       tic = omp_get_wtime();
       if (!ctl->useGPU) { /* execute on CPU */
-        ctl->queue.state = Queue_Execute;
-        begin = ctl->queue.begin;
-        end   = ctl->queue.end;
-        printf("DEBUG # %s start Queue_Execute [%d, %d) on CPU\n", __func__, begin, end);
+        ctl->queue_state = Queue_Execute;
+        printf("DEBUG # %s start Queue_Execute [%d, %d) on CPU\n", __func__, 0, obs->nr);
         printf("DEBUG only scatter CPU-execute version\n");
         /* Do first ray path sequential (to initialize model)... */
-
-        int ind;
-        los_t *los_deb;
-        obs_t *obs_deb;
-        get_queue_item(&ctl->queue, (void*)&los_deb, (void*)&obs_deb, &ind, begin);
-        //debug_obs(ctl, obs_deb);
-        for(ir = begin; ir < begin + 1; ++ir) {
-          formod_pencil(ctl, atm, NULL, aero, 0, ir);
-        } /* ir-loop */
-        get_queue_item(&ctl->queue, (void*)&los_deb, (void*)&obs_deb, &ind, begin);
-        //debug_obs(ctl, obs_deb);
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic) private(ir)
-#endif
+        
+        for(int i = 0; i < 1; i++) {
+          for(ir = qs[i].begin; ir < qs[i].begin + 1; ++ir) {
+            formod_pencil(ctl, atm, NULL, aero, 0, ir, &qs[0]);
+          }
+          for(ir = qs[i].begin + 1; ir < qs[i].end; ++ir) {
+            formod_pencil(ctl, atm, NULL, aero, 0, ir, &qs[0]);
+          }
+        }/* ir-loop */
         /* Do remaining ray paths in parallel... */
-        for(ir = begin + 1; ir < end; ++ir) {
-          formod_pencil(ctl, atm, NULL, aero, 0, ir);
-        } /* ir-loop */
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic)
+#endif
+        for(int i = 1; i < obs->nr; i++) {
+          for(int j = qs[i].begin; j < qs[i].end; j++) {
+            formod_pencil(ctl, atm, NULL, aero, 0, j, &qs[i]);
+          } /* ir-loop */
+        }
       } else {
         printf("DEBUG Call advanced execute!\n");
-        advanced_execute(ctl, atm, aero);
+        advanced_execute(ctl, atm, aero, qs, obs->nr);
         //ERRMSG("No GPU version of formod_pencil implemented!");
       }
       toc = omp_get_wtime();
       printf("TIMER Execute time: %lf\n", toc - tic);
       
       tic = omp_get_wtime();
-      ctl->queue.state = Queue_Collect;
+      ctl->queue_state = Queue_Collect;
       printf("DEBUG # %s start Queue_Collect\n", __func__);
-      for(ir=0; ir<obs->nr; ir++){
-        formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, ir);
-      } 
+
+
+      for(int i=0; i<1; i++) {
+        formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, i, &qs[i]);
+      }
       toc = omp_get_wtime();
-      printf("TIMER Collect time: %lf\n", toc - tic);
-      
-      init_queue(&ctl->queue, -1); /* free queue resources */
-      ctl->queue.state = Queue_Inactive; /* done */
+      printf("TIMER Collect-1st part time: %lf\n", toc - tic);
+
+      tic = omp_get_wtime();
+
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic)
+#endif
+      for(int i=1; i<obs->nr; i++) {
+        formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, i, &qs[i]);
+      }
+ 
+      toc = omp_get_wtime();
+      printf("TIMER Collect-2nd part time: %lf\n", toc - tic);
+     
+      for(int i = 0; i < obs->nr; i++)
+        init_queue(&qs[i], -1); /* free queue resources */
+      ctl->queue_state = Queue_Inactive; /* done */
   }
 
   /* Apply field-of-view convolution... */
@@ -368,7 +409,8 @@ void formod_pencil(ctl_t *ctl,
                    obs_t *obs,
                    aero_t *aero,
                    int scattering,
-                   int ir) {
+                   int ir,
+                   queue_t *q) {
 
   static int init=0;
 
@@ -386,7 +428,7 @@ void formod_pencil(ctl_t *ctl,
   int const Queue_Execute_Leaf = Queue_Execute << 1;
   int const Queue_Collect_Leaf = Queue_Collect << 1;
 #ifdef WORK_QUEUE
-  int const queue_mode = ctl->queue.state << (0 == scattering);
+  int const queue_mode = ctl->queue_state << (0 == scattering);
 #else
   int const queue_mode = Queue_Inactive; /* Queue_Inactive == -1 */
 #endif
@@ -404,13 +446,13 @@ if ((Queue_Collect|Queue_Prepare_Leaf|Queue_Prepare) & queue_mode) { /* CPp */
 } /* CPp */
 
 if (Queue_Prepare_Leaf == queue_mode) { /* ==p */
-  i = push_queue(&ctl->queue, (void*)los, (void*)obs, ir); /* push input and pointer to output */
+  i = push_queue(q, (void*)los, (void*)obs, ir); /* push input and pointer to output */
   if (i < 0) ERRMSG("Too many queue items!"); /* failed */
   return;
 } /* ==p */
 
 if (Queue_Collect_Leaf == queue_mode) { /* ==c */
-  pop_queue(&ctl->queue, (void*)&los, (void*)&obs2, &ir); /* pop result */
+  pop_queue(q, (void*)&los, (void*)&obs2, &ir); /* pop result */
   /* Copy results... */
   for(id=0; id<ctl->nd; id++) {
     obs->rad[ir][id] = obs2->rad[ir][id]; //CHANGED
@@ -420,7 +462,7 @@ if (Queue_Collect_Leaf == queue_mode) { /* ==c */
 } /* ==c */
 
 if (Queue_Execute_Leaf == queue_mode) { /* ==x */
-  get_queue_item(&ctl->queue, (void*)&los, (void*)&obs, &ir, ir); /* get input */
+  get_queue_item(q, (void*)&los, (void*)&obs, &ir, ir); /* get input */
 } /* ==x */
 
 if ((Queue_Collect|Queue_Execute_Leaf) & queue_mode) { /* Cx */
@@ -468,7 +510,7 @@ if ((Queue_Collect|Queue_Prepare) & queue_mode) { /* CP */
       for(i=0; i<3; i++)
         dx[i]=x1[i]-x0[i];
 
-      srcfunc_sca(ctl,atm,aero,obs->time[ir],x,dx,los->aeroi[ip],src_sca,scattering);
+      srcfunc_sca(ctl,atm,aero,obs->time[ir],x,dx,los->aeroi[ip],src_sca,scattering, q);
 } /* CP */
 
 if ((Queue_Collect) & queue_mode) { /* C */

@@ -71,7 +71,8 @@ void srcfunc_sca(ctl_t *ctl,
 		 double *dx,
 		 int il,
 		 double *src_sca,
-		 int scattering);
+		 int scattering,
+     queue_t *q);
 
 /* Compute scattering source (thermal emissions). */
 void srcfunc_sca_1d(ctl_t *ctl,
@@ -81,7 +82,8 @@ void srcfunc_sca_1d(ctl_t *ctl,
 		    double *dx,
 		    int il,
 		    double *src_sca,
-		    int scattering);
+		    int scattering,
+        queue_t *q);
 
 /* Compute scattering source (thermal emissions). */
 void srcfunc_sca_3d(ctl_t *ctl,
@@ -91,7 +93,8 @@ void srcfunc_sca_3d(ctl_t *ctl,
 		    double *dx,
 		    int il,
 		    double *src_sca,
-		    int scattering);
+		    int scattering,
+        queue_t *q);
 
 /* Add solar radiation to scattering source. */
 void srcfunc_sca_sun(ctl_t *ctl,
@@ -101,7 +104,8 @@ void srcfunc_sca_sun(ctl_t *ctl,
 		     double *x,
 		     double *dx,
 		     int il,
-		     double *src_sun);
+		     double *src_sun,
+         queue_t *q);
 
 /* Compute Sun's angular coordinates. */
 void suncoord(double sec,

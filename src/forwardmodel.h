@@ -34,7 +34,8 @@ void formod_pencil(ctl_t *ctl,
  		   obs_t *obs,
  		   aero_t *aero,
  		   int scattering,
- 		   int ir);
+ 		   int ir,
+       queue_t *q);
 
 /* Get transmittance from look-up tables. */
 void intpol_tbl(ctl_t *ctl,

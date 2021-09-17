@@ -96,8 +96,9 @@ void read_ctl(int argc,
   ctl->write_bbt=(int)scan_ctl(argc, argv, "WRITE_BBT", -1, "0", NULL);
   ctl->write_matrix=(int)scan_ctl(argc, argv, "WRITE_MATRIX", -1, "0", NULL);
   
-  /* Work queue... */
-  ctl->queue.capacity=(int)scan_ctl(argc, argv, "MAX_QUEUE", -1, "-1", NULL);
+  //Added:
+  /* Number of leaf rays ... */
+  ctl->leaf_nr=(int)scan_ctl(argc, argv, "LEAF_NR", -1, "-1", NULL);
   
   //Added: useGPU
   ctl->useGPU=(int)scan_ctl(argc, argv, "USEGPU", -1, "0", NULL);
