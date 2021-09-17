@@ -213,6 +213,9 @@ void formod(ctl_t *ctl,
     formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, 0, NULL);
     
     /* Do remaining ray paths in parallel... */
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic)
+#endif
     for(ir=1; ir<obs->nr; ir++){
       formod_pencil(ctl, atm, obs, aero, ctl->sca_mult, ir, NULL);
     }
