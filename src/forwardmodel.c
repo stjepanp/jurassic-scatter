@@ -471,11 +471,14 @@ if (Queue_Execute_Leaf == queue_mode) { /* ==x */
 if ((Queue_Collect|Queue_Execute_Leaf) & queue_mode) { /* Cx */
   /* Read tables... */
   if(!init) {
+    double tic = omp_get_wtime(); 
     init=1;
     printf("Allocate memory for tables: %.4g MB\n",
            (double)sizeof(tbl_t)/1024./1024.);
     ALLOC(tbl, tbl_t, 1);
     read_tbl(ctl, tbl);
+    double toc = omp_get_wtime();
+    printf("TIMER jurassic-scatter reading table time: %lf\n", toc - tic);
   }
 
   /* Initialize... */
