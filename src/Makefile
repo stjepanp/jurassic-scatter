@@ -30,29 +30,29 @@ OMP = 1
 # -----------------------------------------------------------------------------
 
 # Compiler...
-CC = gcc
+#CC = gcc
 
 # CFLAGS...
-CFLAGS = $(INCDIR) -pedantic-errors -Wall -Wextra -Werror -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wconversion -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Wno-long-long -Winline -fno-common -DHAVE_INLINE
+#CFLAGS = $(INCDIR) -pedantic-errors -Wall -Wextra -Werror -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wconversion -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Wno-long-long -Winline -fno-common -DHAVE_INLINE
 
 # Flags for OpenMP...
-ifdef OMP
-CFLAGS += -fopenmp
-endif
+# ifdef OMP
+# CFLAGS += -fopenmp
+# endif
 
 # -----------------------------------------------------------------------------
 # Set flags for open MPI C wrapper compiler with/without openMP...
 # -----------------------------------------------------------------------------
 # # Compiler...
-# CC = mpicc 
+CC = mpicc 
 
 # # CFLAGS...
-# CFLAGS = $(INCDIR) -pedantic-errors -Wall -Wextra -Werror -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wconversion -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Wno-long-long -Winline -fno-common -DHAVE_INLINE
+CFLAGS = $(INCDIR) -pedantic-errors -Wall -Wextra -Werror -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wconversion -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Wno-long-long -Winline -fno-common -DHAVE_INLINE -DMPI
 
 # # Flags for OpenMP...
-# ifdef OMP
-# CFLAGS += -fopenmp
-# endif
+ifdef OMP
+CFLAGS += -fopenmp
+endif
 # -----------------------------------------------------------------------------
 
 CFLAGS += -D WORK_QUEUE
@@ -60,7 +60,7 @@ CFLAGS += -D WORK_QUEUE
 
 # Flags for profiling...
 ifdef PROF
-CFLAGS += -O2 -g -pg
+CFLAGS += -O2 -g -pg -ggdb3
 else
 CFLAGS += -O3
 endif

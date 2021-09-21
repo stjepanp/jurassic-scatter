@@ -1,5 +1,6 @@
 import sys
 import glob
+import re
 
 def disassemble(lines):
     comments, count = -1, 0
@@ -86,6 +87,7 @@ def check(a, b):
         print()
 
 def get_times():
+    all_lines = []
     a = "out" 
     try:
         with open(a) as f:
@@ -94,9 +96,20 @@ def get_times():
         raise Exception("First file not accessible")
     for l in lines:
       if len(l) >= 6 and l[:6] == "TIMER ":
-        print(l[6:], end='')
+        idx = re.search(r'\d+', l).group()
+        all_lines.append([int(idx), l[8+len(idx):]])
+    indices = [x[0] for x in all_lines]
+    indices = list(set(indices))
+    indices.sort()
+    for i in indices:
+      print("MPI global rank: {}".format(i))
+      for l in all_lines:
+        if l[0] == i:
+          print(l[1], end="")
+      print("---------------\n")
 
 def get_debug():
+    all_lines = []
     a = "out" 
     try:
         with open(a) as f:
@@ -105,7 +118,17 @@ def get_debug():
         raise Exception("First file not accessible")
     for l in lines:
       if len(l) >= 6 and l[:6] == "DEBUG ":
-        print(l[6:], end='')
+        idx = re.search(r'\d+', l).group()
+        all_lines.append([int(idx), l[8+len(idx):]])
+    indices = [x[0] for x in all_lines]
+    indices = list(set(indices))
+    indices.sort()
+    for i in indices:
+      print("MPI global rank: {}".format(i))
+      for l in all_lines:
+        if l[0] == i:
+          print(l[1], end="")
+      print("---------------\n")
 
 if __name__ == "__main__":
     with open('aux/submission_index') as f:

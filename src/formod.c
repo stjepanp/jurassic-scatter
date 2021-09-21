@@ -1,3 +1,7 @@
+#include <omp.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "jurassic.h"
 #include "control.h"
 #include "atmosphere.h"
@@ -30,17 +34,25 @@ int main(int argc, char *argv[]) {
   char dirlist[LEN], wrkdir[LEN], task[LEN], aerofile[LEN];
 
   /* ###################################################################### */  
-  int myrank=0, numprocs=1, nfiles=-1;
+  int myrank=0, node_local_rank=0, numprocs=1, nfiles=-1;
 
 #ifdef MPI /* MPI_VERSION */
   double start, end, duration, global;
-  int ierr; 
 
   /* Initialize MPI */
-  ierr = MPI_Init(&argc, &argv);
+  MPI_Init(&argc, &argv);
   start = MPI_Wtime();
-  ierr = MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-  ierr = MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+  MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+  char name[MPI_MAX_PROCESSOR_NAME];
+  int resultlength;
+  MPI_Get_processor_name(name, &resultlength);
+  printf("DEBUG #%d processor name: %s\n", myrank, name);
+  MPI_Comm shmcomm;
+  MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0,
+                      MPI_INFO_NULL, &shmcomm);
+  MPI_Comm_rank(shmcomm, &node_local_rank);
+  
   /* ###################################################################### */
 #endif
 
@@ -59,14 +71,17 @@ int main(int argc, char *argv[]) {
 
   /* Get aero... */
   scan_ctl(argc, argv, "AEROFILE", -1, "-", aerofile);
-  
+ 
+  ctl.MPIglobrank = myrank;
+  ctl.MPIlocalrank = node_local_rank;
+
   /* Single forward calculation... */
-  if(dirlist[0]=='-')
+  if(dirlist[0]=='-') {
+    printf("DEBUG #%d single forward calculation\n", ctl.MPIglobrank);
     call_formod(&ctl, NULL, argv[2], argv[3], argv[4], task, aerofile);
-  
+  }
   /* Work on directory list... */
   else {
-    
     /* Open directory list... */
     if(!(in=fopen(dirlist, "r")))
       ERRMSG("Cannot open directory list!");
@@ -92,9 +107,9 @@ int main(int argc, char *argv[]) {
   duration = end - start;
   MPI_Reduce(&duration,&global,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);
   if(myrank == 0) {
-    printf("Global runtime is %f seconds \n",global);
+    printf("DEBUG #999 Global runtime is %f seconds \n",global);
   }
-  ierr = MPI_Finalize();
+  MPI_Finalize();
 #endif
   return EXIT_SUCCESS;
 }
@@ -109,6 +124,7 @@ void call_formod(ctl_t *ctl,
 		 const char *task,
 		 const char *aerofile) {
   
+  printf("DEBUG #%d forward calculation: %s\n", ctl->MPIglobrank, wrkdir);
   static atm_t atm, atm2;
   
   static obs_t obs;
@@ -134,10 +150,15 @@ void call_formod(ctl_t *ctl,
   else if (aerofile[0]=='-' && ctl->sca_n>0) {
     ERRMSG("Please give aerosol file name or set SCA_N=0 for clear air simulation!");
   }
-
+  
+  double tic = omp_get_wtime(); 
   /* Call forward model... */
   formod(ctl, &atm, &obs, &aero);
   
+  double toc = omp_get_wtime(); 
+  printf("TIMER #%d Total time: %lf\n", ctl->MPIglobrank, toc - tic);
+  printf("TIMER #%d \n", ctl->MPIglobrank);
+  printf("DEBUG #%d \n", ctl->MPIglobrank);
   /* Save radiance data... */
   write_obs(wrkdir, radfile, ctl, &obs);
   

@@ -736,7 +736,7 @@ void srcfunc_sca_1d(ctl_t *ctl,
     obs2->nr=nalpha;
     cart2geo(x, &obs2->obsz[ir], &obs2->obslon[ir], &obs2->obslat[ir]);
     cart2geo(xv, &obs2->vpz[ir], &obs2->vplon[ir], &obs2->vplat[ir]);
-    
+     
     /* Get pencil beam radiance... */
     formod_pencil(ctl, atm, obs2, aero, scattering-1, ir, q);
   }

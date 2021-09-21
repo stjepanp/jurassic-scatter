@@ -1,7 +1,7 @@
 #!/bin/bash -x
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=64
 #SBATCH --output=out
 #SBATCH --error=err
 #SBATCH --time=1:00:00
@@ -49,4 +49,4 @@ w1=785
 w2=798
 
 ### run forward model
-time srun $src/formod cloud-${w1}-${w2}.ctl obs33.tab atm.tab submissions/rad-${m}.tab AEROFILE aero.tab DIRLIST aux/first_001
+time srun $src/formod cloud-${w1}-${w2}.ctl obs33.tab atm.tab submissions/rad-${m}.tab AEROFILE aero.tab DIRLIST aux/first_002
