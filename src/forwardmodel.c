@@ -622,7 +622,7 @@ if ((Queue_Collect|Queue_Execute_Leaf) & queue_mode) { /* Cx */
 } /* Cx */
 
 
-  if ((Queue_Collect|Queue_Execute_Leaf|Queue_Prepare) & queue_mode) { 
+  if ((Queue_Collect|Queue_Prepare) & queue_mode) { 
     /* Free... */
     free(los);
   }
