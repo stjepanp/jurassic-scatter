@@ -653,9 +653,9 @@ void srcfunc_sca(ctl_t *ctl,
   
   /* Compute scattering of thermal radiation... */
   if(ctl->ip==1)
-    srcfunc_sca_1d(ctl, atm, aero, x, dx, il, src_sca, scattering, q);
+    srcfunc_sca_1d(ctl, atm, aero, sec, x, dx, il, src_sca, scattering, q);
   else
-    srcfunc_sca_3d(ctl, atm, aero, x, dx, il, src_sca, scattering, q);
+    srcfunc_sca_3d(ctl, atm, aero, sec, x, dx, il, src_sca, scattering, q);
   
   /* Compute scattering of solar radiation... */
   if(TSUN>0)
@@ -667,6 +667,7 @@ void srcfunc_sca(ctl_t *ctl,
 void srcfunc_sca_1d(ctl_t *ctl,
 		    atm_t *atm,
 		    aero_t *aero,
+        double sec,
 		    double *x,
 		    double *dx,
 		    int il,
@@ -736,7 +737,7 @@ void srcfunc_sca_1d(ctl_t *ctl,
     obs2->nr=nalpha;
     cart2geo(x, &obs2->obsz[ir], &obs2->obslon[ir], &obs2->obslat[ir]);
     cart2geo(xv, &obs2->vpz[ir], &obs2->vplon[ir], &obs2->vplat[ir]);
-     
+    obs2->time[ir] = sec; 
     /* Get pencil beam radiance... */
     formod_pencil(ctl, atm, obs2, aero, scattering-1, ir, q);
   }
@@ -813,6 +814,7 @@ void srcfunc_sca_1d(ctl_t *ctl,
 void srcfunc_sca_3d(ctl_t *ctl,
 		    atm_t *atm,
 		    aero_t *aero,
+        double sec,
 		    double *x,
 		    double *dx,
 		    int il,
@@ -864,6 +866,7 @@ void srcfunc_sca_3d(ctl_t *ctl,
       obs2->nr=1;
       cart2geo(x, &obs2->obsz[0], &obs2->obslon[0], &obs2->obslat[0]);
       cart2geo(xv, &obs2->vpz[0], &obs2->vplon[0], &obs2->vplat[0]);
+      obs2->time[0] = sec; 
       
       /* Get incident radiation... */
       formod_pencil(ctl, atm, obs2, aero, scattering-1, 0, q);
@@ -899,6 +902,8 @@ void srcfunc_sca_3d(ctl_t *ctl,
 
 /*****************************************************************************/
 
+
+//TODO: question: I think we should add if(queue_state == prepare_leaf) return;
 void srcfunc_sca_sun(ctl_t *ctl,
 		     atm_t *atm,
 		     aero_t *aero,

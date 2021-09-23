@@ -73,12 +73,6 @@ void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero, queue_t *qs, int nr)
   obs_t *obs_packages;
   ALLOC(obs_packages, obs_t, number_of_packages);
  
-  los_t ***los_packages;
-  ALLOC(los_packages, los_t**, number_of_packages);
-  ALLOC(los_packages[0], los_t*, number_of_packages * NR);
-  for (int i = 1; i < number_of_packages; i++)
-    los_packages[i] = los_packages[0] + i * NR;
-
   int last_package_size = sum_sizes % NR;
   for(int i = 0; i < number_of_packages; i++)
     if(i == number_of_packages - 1 && last_package_size > 0)
@@ -92,13 +86,13 @@ void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero, queue_t *qs, int nr)
   for(int i = 0; i < nr; i++) {
     for(int j = 0; j < qs[i].end - qs[i].begin; j++) {
       int ind;
+      obs_t *obs;
       los_t *los;
-      obs_t *obs; 
       int package_id = (pref_sizes[i] + j) / NR;
       int obs_row = (pref_sizes[i] + j) % NR;
       get_queue_item(&qs[i], (void*)&los, (void*)&obs, &ind, qs[i].begin + j);
+      assert(los == NULL);
       copy_obs_row(obs, ind, &obs_packages[package_id], obs_row);
-      los_packages[package_id][obs_row] = los;
     }
   }
 
@@ -110,7 +104,7 @@ void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero, queue_t *qs, int nr)
   printf("\n");
   tic = omp_get_wtime();
   printf("%d %d\n", atm->np, aero->nl);
-  formod_multiple_packages(ctl, atm, aero, number_of_packages, obs_packages, los_packages);    
+  formod_multiple_packages(ctl, atm, aero, number_of_packages, obs_packages); 
   toc = omp_get_wtime();
   printf("TIMER #%d Execute: formod_multiple_packages time: %lf\n", ctl->MPIglobrank, toc - tic);
 
@@ -122,19 +116,18 @@ void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero, queue_t *qs, int nr)
   for(int i = 0; i < nr; i++)
     for(int j = 0; j < qs[i].end - qs[i].begin; j++) {
       int ind;
-      los_t *los;
       obs_t *obs; 
+      los_t *los;
       int package_id = (pref_sizes[i] + j) / NR;
       int obs_row = (pref_sizes[i] + j) % NR;
       get_queue_item(&qs[i], (void*)&los, (void*)&obs, &ind, qs[i].begin + j);
+      assert(los == NULL);
       copy_obs_row(&obs_packages[package_id], obs_row, obs, ind);
     }
 
   toc = omp_get_wtime();
   printf("TIMER #%d Execute: copy from packages queue time: %lf\n", ctl->MPIglobrank, toc - tic);
   free(pref_sizes);
-  free(los_packages[0]);
-  free(los_packages);
   free(obs_packages);
 }
 
@@ -194,7 +187,6 @@ void formod(ctl_t *ctl,
     printf("TIMER #%d Prepare 1st part time: %lf\n", ctl->MPIglobrank, toc - tic);
 
     tic = omp_get_wtime();
-    //TODO: add this parallel part..
     /* Do remaining ray paths in parallel... */
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic)
@@ -288,24 +280,6 @@ void formod(ctl_t *ctl,
       printf("TIMER #%d Collect-2nd part time: %lf\n", ctl->MPIglobrank, toc - tic);
 
       tic = omp_get_wtime();
-//#ifdef _OPENMP
-//#pragma omp parallel for
-//#endif
-      /*printf("DEBUG %d kaaaj se dogadja %d\n", ctl->MPIglobrank, obs->nr);
-      for(int i = 0; i < obs->nr; i++) {
-        printf("id: %d, sizes: %d %d", i, qs[i].begin, qs[i].end);
-        for(int j = 0; j < qs[i].end - qs[i].begin; j++) {
-          int ind;
-          los_t *los_f;
-          obs_t *obs_f; 
-          get_queue_item(&qs[i], (void*)&los_f, (void*)&obs_f, &ind, qs[i].begin + j);
-          printf("%d %d %d\n", i, j, ind);
-          assert(los_f == NULL);
-          free(los_f);
-          assert(obs_f == NULL);
-          if(ind == 0) free(obs_f);
-        }
-      }*/
       for(int i = 0; i < obs->nr; i++)
         init_queue(&qs[i], -1); 
       free(qs);
@@ -469,7 +443,7 @@ void formod_pencil(ctl_t *ctl,
   printf("# %s(..., %p, aero, scattering=%d, ir=%d) queue_mode = %d;\n", __func__, (void*)obs, scattering, ir, queue_mode);
 #endif 
   
-if ((Queue_Collect|Queue_Prepare_Leaf|Queue_Prepare) & queue_mode) { /* CPp */
+if ((Queue_Collect|Queue_Prepare) & queue_mode) { /* CPp */
   /* Allocate... */
   ALLOC(los, los_t, 1);
 
@@ -478,25 +452,29 @@ if ((Queue_Collect|Queue_Prepare_Leaf|Queue_Prepare) & queue_mode) { /* CPp */
 } /* CPp */
 
 if (Queue_Prepare_Leaf == queue_mode) { /* ==p */
-  i = push_queue(q, (void*)los, (void*)obs, ir); /* push input and pointer to output */
+  i = push_queue(q, (void*)NULL, (void*)obs, ir); /* push input and pointer to output */
   if (i < 0) ERRMSG("Too many queue items!"); /* failed */
   return;
 } /* ==p */
 
 if (Queue_Collect_Leaf == queue_mode) { /* ==c */
   pop_queue(q, (void*)&los, (void*)&obs2, &ir); /* pop result */
+  assert(los == NULL);
   /* Copy results... */
   for(id=0; id<ctl->nd; id++) {
     obs->rad[ir][id] = obs2->rad[ir][id]; //CHANGED
     obs->tau[ir][id] = obs2->tau[ir][id]; //CAHNGED
   } /* id */
-  free(los);
+  //free(los);
   if(obs2->nr - 1 == ir) free(obs2);
   return;
 } /* ==c */
 
 if (Queue_Execute_Leaf == queue_mode) { /* ==x */
   get_queue_item(q, (void*)&los, (void*)&obs, &ir, ir); /* get input */
+  assert(los == NULL);
+  ALLOC(los, los_t, 1);
+  raytrace(ctl, atm, obs, aero, los, ir);
 } /* ==x */
 
 if ((Queue_Collect|Queue_Execute_Leaf) & queue_mode) { /* Cx */
@@ -622,7 +600,7 @@ if ((Queue_Collect|Queue_Execute_Leaf) & queue_mode) { /* Cx */
 } /* Cx */
 
 
-  if ((Queue_Collect|Queue_Prepare) & queue_mode) { 
+  if ((Queue_Collect|Queue_Execute_Leaf|Queue_Prepare) & queue_mode) { 
     /* Free... */
     free(los);
   }
