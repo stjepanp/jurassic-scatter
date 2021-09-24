@@ -8,6 +8,9 @@
 #include "forwardmodel.h"
 #include "scatter.h"
 
+#define __host__
+#include "interface.h"
+
 /* ------------------------------------------------------------
    Functions...
    ------------------------------------------------------------ */
@@ -74,6 +77,11 @@ int main(int argc, char *argv[]) {
  
   ctl.MPIglobrank = myrank;
   ctl.MPIlocalrank = node_local_rank;
+
+  // Initialization of the tables
+  tbl_t *tbl = scatter_get_tbl(&ctl);
+  printf("%d\n", tbl->np[0][0]); // Have to do it, because of unused warning... 
+  initialize_jurassic_gpu_table(&ctl);
 
   /* Single forward calculation... */
   if(dirlist[0]=='-') {
@@ -156,7 +164,7 @@ void call_formod(ctl_t *ctl,
   formod(ctl, &atm, &obs, &aero);
   
   double toc = omp_get_wtime(); 
-  printf("TIMER #%d Total time: %lf\n", ctl->MPIglobrank, toc - tic);
+  printf("TIMER #%d Total time for test %s: %lf\n", ctl->MPIglobrank, wrkdir, toc - tic);
   printf("TIMER #%d \n", ctl->MPIglobrank);
   printf("DEBUG #%d \n", ctl->MPIglobrank);
   /* Save radiance data... */

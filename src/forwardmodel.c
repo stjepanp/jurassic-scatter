@@ -131,6 +131,20 @@ void advanced_execute(ctl_t *ctl, atm_t *atm, aero_t *aero, queue_t *qs, int nr)
   free(obs_packages);
 }
 
+tbl_t* scatter_get_tbl(ctl_t *ctl) {
+  static tbl_t *tbl = NULL;
+	if(!tbl) {
+    double tic = omp_get_wtime(); 
+    printf("Allocate memory for tables: %.4g MB\n",
+           (double)sizeof(tbl_t)/1024./1024.);
+    ALLOC(tbl, tbl_t, 1);
+    read_tbl(ctl, tbl);
+    double toc = omp_get_wtime();
+    printf("TIMER #%d jurassic-scatter FIRST and ONLY reading table time: %lf\n", ctl->MPIglobrank, toc - tic);
+  }
+  return tbl;
+}
+
 
 void formod(ctl_t *ctl,
 	    atm_t *atm,
@@ -480,14 +494,8 @@ if (Queue_Execute_Leaf == queue_mode) { /* ==x */
 if ((Queue_Collect|Queue_Execute_Leaf) & queue_mode) { /* Cx */
   /* Read tables... */
   if(!init) {
-    double tic = omp_get_wtime(); 
     init=1;
-    printf("Allocate memory for tables: %.4g MB\n",
-           (double)sizeof(tbl_t)/1024./1024.);
-    ALLOC(tbl, tbl_t, 1);
-    read_tbl(ctl, tbl);
-    double toc = omp_get_wtime();
-    printf("TIMER #%d jurassic-scatter reading table time: %lf\n", ctl->MPIglobrank, toc - tic);
+    tbl = scatter_get_tbl(ctl);
   }
 
   /* Initialize... */
