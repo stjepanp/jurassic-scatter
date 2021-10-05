@@ -18,4 +18,5 @@ src/raytrace
 src/retrieval
 src/tab2bin
 testing
+jurassic-gpu
 *.swp

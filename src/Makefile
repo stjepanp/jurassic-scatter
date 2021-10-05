@@ -11,13 +11,13 @@ EXC = formod
 LIBDIR = 
 LIBDIR += -L /p/software/jusuf/stages/2020/modules/all/Compiler/GCC/9.3.0
 LIBDIR += -L /p/software/jusuf/stages/2020/software/CUDA/11.0/lib64
-LIBDIR += -L ../../src
+LIBDIR += -L ../jurassic-gpu/src
 
 
 # Include directories...
 #INCDIR = -I /usr/local/include
-INCDIR += -I ../../lib/common_header
-INCDIR += -I ../../src/inter_folder
+INCDIR += -I ../common-header
+INCDIR += -I ../jurassic-gpu/src/inter_folder
 
 # OpenMP...
 OMP = 1
