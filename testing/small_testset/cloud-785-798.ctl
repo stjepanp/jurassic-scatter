@@ -64,7 +64,7 @@ SCA_N = 1
 SCA_MULT = 1
 SCA_EXT = beta_e
 
-LEAF_NR = 1e5
+MAX_QUEUE = 1e5
 
 # Raytracing...
 RAYDS = 10.
