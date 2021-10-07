@@ -2,6 +2,7 @@
 #include "workqueue.h" /* Queue_Inactive, Queue_Prepare, Queue_Execute, Queue_Execute */
 #include <assert.h> /* assert */
 #include <omp.h>
+#include <math.h>
 
 #define __host__
 #include "interface.h"
@@ -171,9 +172,10 @@ void formod(ctl_t *ctl,
     get_opt_prop(ctl, aero);
   }
 
-  if (ctl->leaf_nr > 0) { /* switch usage of queue on by setting MAX_QUEUE > 0 */
+  if (abs(ctl->leaf_nr) > 0) { /* switch usage of queue on by setting |MAX_QUEUE| > 0 */
     
     int leaf_rays_per_ray = ctl->leaf_nr / obs->nr + 1;
+    if(ctl->leaf_nr < 0) leaf_rays_per_ray = (-1 * ctl->leaf_nr) / obs->nr + 1;
     ALLOC(qs, queue_t, obs->nr);
     for(int i = 0; i < obs->nr; i++)
       init_queue(&qs[i], leaf_rays_per_ray);
@@ -239,7 +241,7 @@ void formod(ctl_t *ctl,
   
   if (Queue_Prepare == ctl->queue_state) {
       tic = omp_get_wtime();
-      if (0 == ctl->useGPU) { /* execute on CPU */
+      if (ctl->leaf_nr < 0) { /* execute on CPU */
         ctl->queue_state = Queue_Execute;
         printf("DEBUG #%d %s start Queue_Execute [%d, %d) on CPU\n", ctl->MPIglobrank, __func__, 0, obs->nr);
         printf("DEBUG #%d only scatter CPU-execute version\n", ctl->MPIglobrank);
