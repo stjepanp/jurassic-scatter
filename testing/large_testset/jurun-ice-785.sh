@@ -1,12 +1,12 @@
 #!/bin/bash -x
-#SBATCH --nodes=10
-#SBATCH --ntasks-per-node=1
+#SBATCH --nodes=3
+#SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=12
 #SBATCH --output=out
 #SBATCH --error=err
 #SBATCH --time=1:00:00
-#SBATCH --partition=gpus
-#SBATCH --gres=gpu:1
+#SBATCH --partition=booster
+#SBATCH --gres=gpu:4
 #SBATCH --account=slmet
 
 module load Python/3.8.5
