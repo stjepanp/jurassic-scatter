@@ -12,6 +12,7 @@ echo $m > aux/submission_index
 echo last: $n, new: $m
 
 read -n 1 -s -r -p "Press any key to continue"
+echo
 sbatch jurun-ice-785.sh ../../src $m
 
 watch -n 1 squeue -u pozgaj1

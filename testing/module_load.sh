@@ -1,3 +1,4 @@
+module load Stages/2020
 module load GCC/10.3.0  OpenMPI/4.1.1 Valgrind/3.17.0
 module load Python/3.8.5
 module load GCC/9.3.0
