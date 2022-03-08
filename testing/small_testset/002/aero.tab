@@ -7,4 +7,4 @@
 # $7 = median radius of log-normal mode [mum]
 # $8 = width of log-normal mode
 
-26.5 26 0.01 MIE /p/project/cslmet/pozgaj1/pozgaj1/new_try/ice/ice-163K-toon.dat 0.0589218 3.0 1.35
+26.5 26 0.01 MIE /p/scratch/cslmet/pozgaj1/simulation/ice/ice-163K-toon.dat 0.0589218 3.0 1.35
