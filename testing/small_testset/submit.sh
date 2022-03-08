@@ -10,6 +10,7 @@ n=$(< aux/submission_index)
 m=$(( n + 1 ))
 echo $m > aux/submission_index
 echo last: $n, new: $m
+ls ../../src/ -rtl | tail -1
 
 read -n 1 -s -r -p "Press any key to continue"
 echo
